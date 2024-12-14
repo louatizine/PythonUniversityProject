@@ -28,20 +28,20 @@ export function Profile() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
+  
     const token = localStorage.getItem("access_token");
     if (!token) {
       setMessage("You must be logged in to add a car.");
       return;
     }
-
+  
     const carData = new FormData();
-    carData.append("brand", formData.brand);
+    carData.append("marke", formData.brand);
     carData.append("model", formData.model);
     carData.append("year", formData.year);
-    carData.append("price", formData.price);
+    carData.append("price_per_day", formData.price);
     if (formData.picture) carData.append("picture", formData.picture);
-
+  
     try {
       const response = await axios.post("http://127.0.0.1:5000/api/cars", carData, {
         headers: {
@@ -65,7 +65,7 @@ export function Profile() {
       }
     }
   };
-
+  
   return (
     <div className="add-car-form">
       <h1>Add a New Car</h1>
@@ -101,7 +101,7 @@ export function Profile() {
           />
         </div>
         <div>
-          <label>Price:</label>
+          <label>Price per day:</label>
           <input
             type="number"
             name="price"
@@ -112,19 +112,14 @@ export function Profile() {
         </div>
         <div>
           <label>Picture:</label>
-          <input
-            type="file"
-            name="picture"
-            accept="image/*"
-            onChange={handleFileChange}
-          />
+          <input type="file" name="picture" onChange={handleFileChange} />
         </div>
         <button type="submit">Add Car</button>
       </form>
       {message && <p>{message}</p>}
     </div>
   );
-};
+}
 
 export default Profile;
 
