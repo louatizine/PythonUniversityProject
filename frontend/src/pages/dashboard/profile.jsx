@@ -1,122 +1,147 @@
 import React, { useState } from "react";
 import axios from "axios";
 
-export function Profile() { 
+export function Profile() {
   const [formData, setFormData] = useState({
-    brand: "",
+    marke: "",
     model: "",
     year: "",
-    price: "",
-    picture: null,
+    price_per_day: "",
+    fuel_type: "",
+    picture: "",
   });
+
   const [message, setMessage] = useState("");
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData({
-      ...formData,
+    setFormData((prev) => ({
+      ...prev,
       [name]: value,
-    });
-  };
-
-  const handleFileChange = (e) => {
-    setFormData({
-      ...formData,
-      picture: e.target.files[0],
-    });
+    }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-  
-    const token = localStorage.getItem("access_token");
-    if (!token) {
-      setMessage("You must be logged in to add a car.");
-      return;
-    }
-  
-    const carData = new FormData();
-    carData.append("marke", formData.brand);
-    carData.append("model", formData.model);
-    carData.append("year", formData.year);
-    carData.append("price_per_day", formData.price);
-    if (formData.picture) carData.append("picture", formData.picture);
-  
     try {
-      const response = await axios.post("http://127.0.0.1:5000/api/cars", carData, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "multipart/form-data",
-        },
-      });
-      setMessage("Car added successfully!");
+      const response = await axios.post("http://localhost:5000/cars", formData);
+      setMessage(response.data.message);
       setFormData({
-        brand: "",
+        marke: "",
         model: "",
         year: "",
-        price: "",
-        picture: null,
+        price_per_day: "",
+        fuel_type: "",
+        picture: "",
       });
     } catch (error) {
-      if (error.response && error.response.data) {
-        setMessage(error.response.data.message || "Failed to add car.");
-      } else {
-        setMessage("An error occurred while adding the car.");
-      }
+      setMessage("Error: Could not add the car.");
+      console.error(error);
     }
   };
-  
+
   return (
-    <div className="add-car-form">
-      <h1>Add a New Car</h1>
-      <form onSubmit={handleSubmit}>
+    <div className="max-w-4xl mx-auto my-10 p-8 bg-white shadow-md rounded-lg">
+      <h2 className="text-2xl font-bold mb-6 text-center text-gray-800">
+        Add a New Car
+      </h2>
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Marke */}
         <div>
-          <label>Brand:</label>
+          <label className="block text-gray-700 font-medium mb-1">Marke:</label>
           <input
             type="text"
-            name="brand"
-            value={formData.brand}
+            name="marke"
+            value={formData.marke}
             onChange={handleChange}
             required
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
           />
         </div>
+        {/* Model */}
         <div>
-          <label>Model:</label>
+          <label className="block text-gray-700 font-medium mb-1">Model:</label>
           <input
             type="text"
             name="model"
             value={formData.model}
             onChange={handleChange}
             required
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
           />
         </div>
+        {/* Year */}
         <div>
-          <label>Year:</label>
+          <label className="block text-gray-700 font-medium mb-1">Year:</label>
           <input
             type="number"
             name="year"
             value={formData.year}
             onChange={handleChange}
             required
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
           />
         </div>
+        {/* Price per Day */}
         <div>
-          <label>Price per day:</label>
+          <label className="block text-gray-700 font-medium mb-1">
+            Price per Day:
+          </label>
           <input
             type="number"
-            name="price"
-            value={formData.price}
+            step="0.01"
+            name="price_per_day"
+            value={formData.price_per_day}
             onChange={handleChange}
             required
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
           />
         </div>
+        {/* Fuel Type */}
         <div>
-          <label>Picture:</label>
-          <input type="file" name="picture" onChange={handleFileChange} />
+          <label className="block text-gray-700 font-medium mb-1">
+            Fuel Type:
+          </label>
+          <input
+            type="text"
+            name="fuel_type"
+            value={formData.fuel_type}
+            onChange={handleChange}
+            required
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+          />
         </div>
-        <button type="submit">Add Car</button>
+        {/* Picture */}
+        <div>
+          <label className="block text-gray-700 font-medium mb-1">
+            Picture URL:
+          </label>
+          <input
+            type="text"
+            name="picture"
+            value={formData.picture}
+            onChange={handleChange}
+            required
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+          />
+        </div>
+        {/* Submit Button */}
+        <button
+          type="submit"
+          className="w-full bg-blue-600 text-white py-2 rounded-lg font-semibold hover:bg-blue-700 transition duration-300"
+        >
+          Add Car
+        </button>
       </form>
-      {message && <p>{message}</p>}
+      {message && (
+        <p
+          className={`mt-4 text-center font-medium ${
+            message.includes("Error") ? "text-red-600" : "text-green-600"
+          }`}
+        >
+          {message}
+        </p>
+      )}
     </div>
   );
 }
@@ -131,83 +156,3 @@ export default Profile;
 
 
 
-
-
-
-
-
-
-
-{/* <div className="px-4 pb-4">
-<Typography variant="h6" color="blue-gray" className="mb-2">
-  Projects
-</Typography>
-<Typography
-  variant="small"
-  className="font-normal text-blue-gray-500"
->
-  Architects design houses
-</Typography>
-<div className="mt-6 grid grid-cols-1 gap-12 md:grid-cols-2 xl:grid-cols-4">
-  {projectsData.map(
-    ({ img, title, description, tag, route, members }) => (
-      <Card key={title} color="transparent" shadow={false}>
-        <CardHeader
-          floated={false}
-          color="gray"
-          className="mx-0 mt-0 mb-4 h-64 xl:h-40"
-        >
-          <img
-            src={img}
-            alt={title}
-            className="h-full w-full object-cover"
-          />
-        </CardHeader>
-        <CardBody className="py-0 px-1">
-          <Typography
-            variant="small"
-            className="font-normal text-blue-gray-500"
-          >
-            {tag}
-          </Typography>
-          <Typography
-            variant="h5"
-            color="blue-gray"
-            className="mt-1 mb-2"
-          >
-            {title}
-          </Typography>
-          <Typography
-            variant="small"
-            className="font-normal text-blue-gray-500"
-          >
-            {description}
-          </Typography>
-        </CardBody>
-        <CardFooter className="mt-6 flex items-center justify-between py-0 px-1">
-          <Link to={route}>
-            <Button variant="outlined" size="sm">
-              view project
-            </Button>
-          </Link>
-          <div>
-            {members.map(({ img, name }, key) => (
-              <Tooltip key={name} content={name}>
-                <Avatar
-                  src={img}
-                  alt={name}
-                  size="xs"
-                  variant="circular"
-                  className={`cursor-pointer border-2 border-white ${
-                    key === 0 ? "" : "-ml-2.5"
-                  }`}
-                />
-              </Tooltip>
-            ))}
-          </div>
-        </CardFooter>
-      </Card>
-    )
-  )}
-</div>
-</div> */}

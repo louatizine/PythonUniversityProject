@@ -30,6 +30,22 @@ class User(db.Model):
     last_name = db.Column(db.String(100), nullable=False)
     role = db.Column(db.String(50), nullable=False, default="user")
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    
+    
+    
+class Rental(db.Model):
+    __tablename__ = "rental"
+    id = db.Column(db.Integer, primary_key=True)
+    car_id = db.Column(db.Integer, db.ForeignKey('car.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    rental_date = db.Column(db.DateTime, default=datetime.utcnow)
+    return_date = db.Column(db.DateTime, nullable=True)
+    status = db.Column(db.String(20), nullable=False, default="pending")  # New field: pending, approved, rejected
+    car = db.relationship('Car', backref=db.backref('rentals', cascade='all, delete-orphan'))
+    user = db.relationship('User', backref=db.backref('rentals', cascade='all, delete-orphan'))
+
+    
 
 class Car(db.Model):
     __tablename__ = 'car'
@@ -63,6 +79,7 @@ cars_schema = CarSchema(many=True)
 def home():
     return jsonify({"message": "Welcome to the Car Rental API!"})
 
+
 @app.route('/api/register', methods=['POST'])
 def register():
     data = request.json
@@ -85,22 +102,36 @@ def register():
 
     return jsonify({'message': 'User registered successfully'}), 201
 
+
+
+
+
 @app.route('/api/login', methods=['POST'])
 def login():
     data = request.json
     email = data.get('email')
     password = data.get('password')
 
-    if not email or not password:
-        return jsonify({'message': 'Email and password are required'}), 400
-
     user = User.query.filter_by(email=email).first()
 
     if user and bcrypt.check_password_hash(user.password, password):
-        access_token = create_access_token(identity={'id': user.id, 'email': user.email, 'role': user.role})
-        return jsonify({'message': 'Login successful', 'access_token': access_token, 'role': user.role}), 200
+        access_token = create_access_token(identity=str(user.id))  # Use a string here the best why to remove the 422 error 
+        return jsonify({
+            'message': 'Login successful',
+            'access_token': access_token,
+            'role': user.role
+        }), 200
 
     return jsonify({'message': 'Invalid email or password'}), 401
+
+
+
+
+
+
+
+
+
 
 @app.route('/listusers', methods=['GET'])
 def listusers():
@@ -189,39 +220,159 @@ def get_current_user():
         return user_schema.jsonify(user)
     return jsonify({"message": "User not found"}), 404
 
+
+
+
+
+
+
+
 # Cars API
-@app.route('/api/cars', methods=['POST'])
+## Car CRUD
+@app.route('/cars', methods=['POST'])
+def create_car():
+    data = request.json
+    new_car = Car(**data)
+    db.session.add(new_car)
+    db.session.commit()
+    return jsonify({"message": "Car added", "car_id": new_car.id}), 201
+
+
+@app.route('/cars/<int:id>', methods=['GET'])
+def get_car(id):
+    car = Car.query.get_or_404(id)
+    return jsonify({"id": car.id, "marke": car.marke, "model": car.model, "price_per_day": car.price_per_day})
+
+@app.route('/cars/<int:id>', methods=['PUT'])
+def update_car(id):
+    data = request.json
+    car = Car.query.get_or_404(id)
+    for key, value in data.items():
+        setattr(car, key, value)
+    db.session.commit()
+    return jsonify({"message": "Car updated", "car_id": car.id})
+
+@app.route('/cars/<int:id>', methods=['DELETE'])
+def delete_car(id):
+    car = Car.query.get_or_404(id)
+    db.session.delete(car)
+    db.session.commit()
+    return jsonify({"message": "Car deleted"})
+
+
+
+
+
+
+## Rental Management
+@app.route('/rentals', methods=['POST'])
+def rent_car():
+    data = request.json
+    car = Car.query.get(data['car_id'])
+    if car:
+        rental = Rental(car_id=car.id, user_id=data['user_id'])
+        db.session.add(rental)
+        db.session.commit()
+        return jsonify({"message": "Car rented", "car_id": car.id, "user_id": data['user_id']})
+    return jsonify({"error": "Car not found"}), 404
+
+
+
+
+
+@app.route('/returns', methods=['POST'])
+def return_car():
+    data = request.json
+    rental = Rental.query.filter_by(car_id=data['car_id'], return_date=None).first()
+    if rental:
+        rental.return_date = datetime.utcnow()
+        db.session.commit()
+        return jsonify({"message": "Car returned", "car_id": rental.car_id})
+    return jsonify({"error": "Rental not found"}), 404
+
+
+
+
+
+@app.route('/list_rentals', methods=['GET'])
 @jwt_required()
-def add_car():
+def list_rentals():
     try:
-        current_user = get_jwt_identity()
-        if not current_user:
-            return jsonify({"message": "User not found"}), 404
+        user_id = int(get_jwt_identity())  # Convert the identity back to an integer
+        rentals = Rental.query.filter_by(user_id=user_id).all()
 
-        print(f"User ID: {current_user['id']}")  # Log the user identity for debugging
-        data = request.form
-        marke = data.get('marke')
-        model = data.get('model')
-        year = data.get('year')
-        price_per_day = data.get('price_per_day')
-        fuel_type = data.get('fuel_type')
-        picture = request.files.get('picture')
+        rentals_data = [{
+            "id": rental.id,
+            "car_id": rental.car_id,
+            "rental_date": rental.rental_date,
+            "return_date": rental.return_date,
+            "status": rental.status
+        } for rental in rentals]
 
-        if not marke or not model or not year or not price_per_day or not fuel_type:
-            return jsonify({"message": "All fields are required"}), 400
+        return jsonify(rentals_data), 200
 
-        picture_path = None
-        if picture:
-            picture_path = f"images/{picture.filename}"
-            picture.save(f'./static/{picture_path}')
+    except Exception as e:
+        print(f"Error: {e}")
+        return jsonify({"message": "An error occurred"}), 422
+
+
+
+
+
+#admin 
+@app.route('/admin/rentals', methods=['GET'])
+@jwt_required()
+def get_all_rentals():
+    """Fetch all rental requests with user and car details."""
+    try:
+        current_user_id = int(get_jwt_identity())
+        current_user = User.query.get(current_user_id)
         
-        new_car = Car(marke=marke, model=model, year=year, price_per_day=price_per_day, fuel_type=fuel_type, picture=picture_path, owner_id=current_user['id'])
-        db.session.add(new_car)
+        if current_user.role != "admin":
+            return jsonify({"message": "Unauthorized"}), 403
+
+        rentals = Rental.query.all()
+        rental_list = [{
+            "id": rental.id,
+            "username": rental.user.username,
+            "car": f"{rental.car.marke} {rental.car.model} ({rental.car.year})",
+            "rental_date": rental.rental_date.strftime('%Y-%m-%d'),
+            "return_date": rental.return_date.strftime('%Y-%m-%d') if rental.return_date else None,
+            "status": rental.status
+        } for rental in rentals]
+
+        return jsonify(rental_list), 200
+    except Exception as e:
+        return jsonify({"message": f"Error: {str(e)}"}), 500
+
+
+@app.route('/admin/rentals/<int:rental_id>/status', methods=['PUT'])
+@jwt_required()
+def update_rental_status(rental_id):
+    """Approve or reject a rental request."""
+    try:
+        current_user_id = int(get_jwt_identity())
+        current_user = User.query.get(current_user_id)
+
+        if current_user.role != "admin":
+            return jsonify({"message": "Unauthorized"}), 403
+
+        rental = Rental.query.get_or_404(rental_id)
+        new_status = request.json.get('status')  # Should be 'approved' or 'rejected'
+
+        if new_status not in ['approved', 'rejected']:
+            return jsonify({"message": "Invalid status. Use 'approved' or 'rejected'."}), 400
+
+        rental.status = new_status
         db.session.commit()
 
-        return car_schema.jsonify(new_car), 201
+        return jsonify({"message": f"Rental request {new_status} successfully!"}), 200
     except Exception as e:
-        return jsonify({"message": f"An error occurred: {str(e)}"}), 500
+        return jsonify({"message": f"Error: {str(e)}"}), 500
+
+
+
+
 
 
 # Initialize the database

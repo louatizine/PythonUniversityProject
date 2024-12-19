@@ -5,15 +5,19 @@ import {
   InformationCircleIcon,
   ServerStackIcon,
   RectangleStackIcon,
+  ArrowRightOnRectangleIcon, // This is the logout icon
 } from "@heroicons/react/24/solid";
 import { Home, Profile, Tables, Notifications } from "@/pages/dashboard";
 import { SignIn, SignUp } from "@/auth";
+import AdminRentals from "./pages/dashboard/adminRentals";
+import { useNavigate } from "react-router-dom"; // For redirecting after logout
+import LogoutPage from "./pages/dashboard/logout";
 
 const icon = {
   className: "w-5 h-5 text-inherit",
 };
 
-export const routes = [
+const routes = [
   {
     layout: "dashboard",
     pages: [
@@ -25,43 +29,37 @@ export const routes = [
       },
       {
         icon: <UserCircleIcon {...icon} />,
-        name: "profile",
-        path: "/profile",
+        name: "Addcar",
+        path: "/Addcar",
         element: <Profile />,
       },
       {
         icon: <TableCellsIcon {...icon} />,
-        name: "tables",
-        path: "/tables",
+        name: "userList",
+        path: "/userList",
         element: <Tables />,
       },
       {
         icon: <InformationCircleIcon {...icon} />,
-        name: "notifications",
-        path: "/notifications",
+        name: "carList",
+        path: "/carList",
         element: <Notifications />,
       },
-
-    ],
-  },
-  {
-    title: "auth pages",
-    layout: "auth",
-    pages: [
       {
-        icon: <ServerStackIcon {...icon} />,
-        name: "sign in",
-        path: "/sign-in",
-        element: <SignIn />,
+        icon: <InformationCircleIcon {...icon} />,
+        name: "list",
+        path: "/list",
+        element: <AdminRentals />,
       },
       {
-        icon: <RectangleStackIcon {...icon} />,
-        name: "sign up",
-        path: "/sign-up",
-        element: <SignUp />,
+        icon: <ArrowRightOnRectangleIcon {...icon} />, // Logout icon
+        name: "logout",
+        path: "/logout",
+        element: <LogoutPage />,
       },
     ],
   },
 ];
+
 
 export default routes;

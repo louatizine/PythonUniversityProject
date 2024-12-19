@@ -1,5 +1,4 @@
 import {
-  Card,
   Input,
   Button,
   Typography,
@@ -37,16 +36,19 @@ export function SignIn() {
       });
   
       const data = await response.json();
+      console.log("Backend Response:", data); // Debugging the full response
   
       if (response.ok) {
         // Store the JWT token in localStorage
         localStorage.setItem("token", data.access_token);
   
+        console.log("User Role:", data.role); // Log the role for debugging
+  
         // Check user role and navigate
-        if (data.role === "admin") {
+        if (data.role && data.role.toLowerCase() === "admin") {
           navigate("/dashboard");
         } else {
-          navigate("/home");
+          navigate("/userRent");
         }
       } else {
         // Display error message if login fails
@@ -54,9 +56,11 @@ export function SignIn() {
       }
     } catch (err) {
       // Handle network or unexpected errors
+      console.error("Error:", err);
       setError("An error occurred. Please try again later.");
     }
   };
+  
   
   
 

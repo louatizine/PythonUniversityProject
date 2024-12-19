@@ -41,7 +41,7 @@ function formatNumber(number, decPlaces) {
 }
 
 export function Configurator() {
-  const [controller, dispatch] = useMaterialTailwindController();
+/*   const [controller, dispatch] = useMaterialTailwindController();
   const { openConfigurator, sidenavColor, sidenavType, fixedNavbar } =
     controller;
   const [stars, setStars] = React.useState(0);
@@ -232,6 +232,6 @@ export function Configurator() {
   );
 }
 
-Configurator.displayName = "/src/widgets/layout/configurator.jsx";
-
+Configurator.displayName = "/src/widgets/layout/configurator.jsx"; */
+}
 export default Configurator;
