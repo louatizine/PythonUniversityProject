@@ -53,7 +53,7 @@ export function Notifications() {
   const updateCar = async () => {
     try {
       await axios.put(`http://127.0.0.1:5000/cars/${editingCar}`, formData);
-      setCars(cars.map((car) => (car.id === editingCar ? { ...formData } : car)));
+      setCars(cars.map((car) => (car.id === editingCar ? { ...car, ...formData } : car)));
       setEditingCar(null); // Reset editing state
       alert("Car updated successfully.");
     } catch (error) {
@@ -70,42 +70,33 @@ export function Notifications() {
           cars.map((car) => (
             <div
               key={car.id}
-              className="bg-white rounded-lg shadow-md overflow-hidden transform hover:scale-105 transition duration-300"
+              className="bg-white rounded-lg shadow-lg p-4 flex flex-col justify-between hover:shadow-2xl transition-transform transform hover:scale-105"
             >
-              {car.picture && (
-                <img
-                  src={`http://127.0.0.1:5000/static/${car.picture}`}
-                  alt={`${car.marke} ${car.model}`}
-                  className="w-full h-48 object-cover"
-                />
-              )}
-              <div className="p-4">
-                <h3 className="text-xl font-semibold mb-2">
-                  {car.marke} {car.model}
-                </h3>
-                <p className="text-gray-600">
-                  <span className="font-medium">Year:</span> {car.year}
-                </p>
-                <p className="text-gray-600">
-                  <span className="font-medium">Fuel Type:</span> {car.fuel_type}
-                </p>
-                <p className="text-gray-600 mb-4">
-                  <span className="font-medium">Price per Day:</span> ${car.price_per_day.toFixed(2)}
-                </p>
-                <div className="flex gap-4">
-                  <button
-                    onClick={() => handleEditClick(car)}
-                    className="bg-yellow-500 text-white py-2 px-4 rounded-lg hover:bg-yellow-600"
-                  >
-                    Update Car
-                  </button>
-                  <button
-                    onClick={() => deleteCar(car.id)}
-                    className="bg-red-500 text-white py-2 px-4 rounded-lg hover:bg-red-600"
-                  >
-                    Delete Car
-                  </button>
-                </div>
+              <img
+                src={car.picture}
+                alt={`${car.marke} ${car.model}`}
+                className="h-40 w-full object-cover rounded-md mb-4"
+              />
+              <h2 className="text-2xl font-semibold mb-2">
+                {car.marke} {car.model} ({car.year})
+              </h2>
+              <p className="text-gray-600 mb-2">Fuel: {car.fuel_type}</p>
+              <p className="text-gray-800 font-bold mb-4">
+                ${car.price_per_day} / day
+              </p>
+              <div className="flex gap-4">
+                <button
+                  onClick={() => handleEditClick(car)}
+                  className="bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-yellow-600"
+                >
+                  Update Car
+                </button>
+                <button
+                  onClick={() => deleteCar(car.id)}
+                  className="bg-red-500 text-white py-2 px-4 rounded-lg hover:bg-red-600"
+                >
+                  Delete Car
+                </button>
               </div>
             </div>
           ))
@@ -125,7 +116,7 @@ export function Notifications() {
                 <input
                   type="text"
                   name="marke"
-                  value={formData.marke}
+                  value={formData.marke || ""}
                   onChange={handleFormChange}
                   className="w-full border border-gray-300 p-2 rounded"
                 />
@@ -135,7 +126,7 @@ export function Notifications() {
                 <input
                   type="text"
                   name="model"
-                  value={formData.model}
+                  value={formData.model || ""}
                   onChange={handleFormChange}
                   className="w-full border border-gray-300 p-2 rounded"
                 />
@@ -145,7 +136,7 @@ export function Notifications() {
                 <input
                   type="number"
                   name="year"
-                  value={formData.year}
+                  value={formData.year || ""}
                   onChange={handleFormChange}
                   className="w-full border border-gray-300 p-2 rounded"
                 />
@@ -156,7 +147,7 @@ export function Notifications() {
                   type="number"
                   name="price_per_day"
                   step="0.01"
-                  value={formData.price_per_day}
+                  value={formData.price_per_day || ""}
                   onChange={handleFormChange}
                   className="w-full border border-gray-300 p-2 rounded"
                 />
@@ -166,7 +157,7 @@ export function Notifications() {
                 <input
                   type="text"
                   name="fuel_type"
-                  value={formData.fuel_type}
+                  value={formData.fuel_type || ""}
                   onChange={handleFormChange}
                   className="w-full border border-gray-300 p-2 rounded"
                 />

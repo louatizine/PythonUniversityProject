@@ -180,7 +180,7 @@ export function SignIn() {
 
           <Typography variant="paragraph" className="text-center text-blue-gray-500 font-medium mt-4">
             Don't have an account?
-            <Link to="/auth/sign-up" className="text-gray-900 ml-1">Sign up</Link>
+            <Link to="signup" className="text-gray-900 ml-1">Sign up</Link>
           </Typography>
         </form>
       </div>

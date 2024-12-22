@@ -10,7 +10,7 @@ app = Flask(__name__)
 CORS(app, origins="http://localhost:5173")  # Allow your frontend's origin
 
 # Database configuration
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:@localhost/carproject'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:@localhost/car'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['JWT_SECRET_KEY'] = 'your_jwt_secret_key'
 
@@ -57,6 +57,9 @@ class Car(db.Model):
     fuel_type = db.Column(db.String(50), nullable=False)
     picture = db.Column(db.String(255), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+
 
 # Marshmallow Schemas
 class UserSchema(ma.Schema):
@@ -123,13 +126,6 @@ def login():
         }), 200
 
     return jsonify({'message': 'Invalid email or password'}), 401
-
-
-
-
-
-
-
 
 
 
@@ -266,19 +262,41 @@ def delete_car(id):
 
 ## Rental Management
 @app.route('/rentals', methods=['POST'])
+@jwt_required()
 def rent_car():
     data = request.json
     car = Car.query.get(data['car_id'])
-    if car:
-        rental = Rental(car_id=car.id, user_id=data['user_id'])
-        db.session.add(rental)
-        db.session.commit()
-        return jsonify({"message": "Car rented", "car_id": car.id, "user_id": data['user_id']})
-    return jsonify({"error": "Car not found"}), 404
 
+    if not car:
+        return jsonify({"error": "Car not found"}), 404
 
+    rental_date = data.get('rental_date')
+    return_date = data.get('return_date')
 
+    if not rental_date or not return_date:
+        return jsonify({"error": "Both rental_date and return_date are required"}), 400
 
+    try:
+        rental_date = datetime.strptime(rental_date, "%Y-%m-%d")
+        return_date = datetime.strptime(return_date, "%Y-%m-%d")
+    except ValueError:
+        return jsonify({"error": "Invalid date format. Use YYYY-MM-DD"}), 400
+
+    if return_date <= rental_date:
+        return jsonify({"error": "Return date must be after the rental date"}), 400
+
+    user_id = int(get_jwt_identity())  
+    rental = Rental(
+        car_id=car.id,
+        user_id=user_id,
+        rental_date=rental_date,
+        return_date=return_date,
+        status="pending"
+    )
+    db.session.add(rental)
+    db.session.commit()
+
+    return jsonify({"message": "Car rented successfully", "car_id": car.id, "user_id": user_id}), 201
 
 @app.route('/returns', methods=['POST'])
 def return_car():
@@ -289,7 +307,6 @@ def return_car():
         db.session.commit()
         return jsonify({"message": "Car returned", "car_id": rental.car_id})
     return jsonify({"error": "Rental not found"}), 404
-
 
 
 
@@ -314,8 +331,6 @@ def list_rentals():
     except Exception as e:
         print(f"Error: {e}")
         return jsonify({"message": "An error occurred"}), 422
-
-
 
 
 
@@ -372,6 +387,25 @@ def update_rental_status(rental_id):
 
 
 
+# Statistique 
+
+
+@app.route('/api/statistics', methods=['GET'])
+def get_statistics():
+    try:
+        total_users = User.query.count()
+        total_cars = Car.query.count()
+        rented_cars = Rental.query.filter(Rental.return_date.is_(None)).count()
+        unrented_cars = total_cars - rented_cars
+
+        return jsonify({
+            "total_users": total_users,
+            "total_cars": total_cars,
+            "rented_cars": rented_cars,
+            "unrented_cars": unrented_cars
+        }), 200
+    except Exception as e:
+        return jsonify({"message": f"Error: {str(e)}"}), 500
 
 
 

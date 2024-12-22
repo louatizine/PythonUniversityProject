@@ -2,22 +2,17 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 
 const CarList = () => {
-  const [cars, setCars] = useState([]); // State for car list
-  const [selectedCar, setSelectedCar] = useState(null); // Selected car for rental
+  const [cars, setCars] = useState([]);
+  const [selectedCar, setSelectedCar] = useState(null);
   const [rentalDate, setRentalDate] = useState("");
   const [returnDate, setReturnDate] = useState("");
-  const [userId] = useState(1); // Replace with actual user ID from authentication
 
-  // Fetch cars from Flask API
+  // Fetch cars from the backend
   useEffect(() => {
     axios
-      .get("http://127.0.0.1:5000/listcar") // Replace with your backend URL
-      .then((response) => {
-        setCars(response.data);
-      })
-      .catch((error) => {
-        console.error("Error fetching cars:", error);
-      });
+      .get("http://127.0.0.1:5000/listcar")
+      .then((response) => setCars(response.data))
+      .catch((error) => console.error("Error fetching cars:", error));
   }, []);
 
   // Rent a car handler
@@ -27,25 +22,28 @@ const CarList = () => {
       return;
     }
 
+    const token = localStorage.getItem("token"); // Retrieve token from local storage
     axios
-      .post("http://127.0.0.1:5000/rentals", {
-        car_id: carId,
-        user_id: userId,
-        rental_date: rentalDate,
-        return_date: returnDate,
-      })
+      .post(
+        "http://127.0.0.1:5000/rentals",
+        { car_id: carId, rental_date: rentalDate, return_date: returnDate },
+        { headers: { Authorization: `Bearer ${token}` } } // Add token in Authorization header
+      )
       .then(() => {
         alert("Car rented successfully!");
         setSelectedCar(null);
       })
       .catch((error) => {
         console.error("Error renting car:", error);
+        alert(error.response?.data?.error || "Failed to rent car.");
       });
   };
 
   return (
     <div className="max-w-6xl mx-auto p-6">
-      <h1 className="text-4xl font-bold text-center mb-8 text-blue-600">Available Cars</h1>
+      <h1 className="text-4xl font-bold text-center mb-8 text-blue-600">
+        Available Cars
+      </h1>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {cars.map((car) => (
           <div
@@ -74,7 +72,6 @@ const CarList = () => {
         ))}
       </div>
 
-      {/* Rent Car Form */}
       {selectedCar && (
         <div className="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center">
           <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
