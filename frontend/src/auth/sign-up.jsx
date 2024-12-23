@@ -136,23 +136,7 @@ export function SignUp() {
             </Typography>
           )}
 
-          <Checkbox
-            label={
-              <Typography
-                variant="small"
-                color="gray"
-                className="flex items-center justify-start font-medium"
-              >
-                I agree to the&nbsp;
-                <a
-                  href="#"
-                  className="font-normal text-black transition-colors hover:text-gray-800"
-                >
-                  Terms and Conditions
-                </a>
-              </Typography>
-            }
-          />
+   
 
           <Button
             type="submit"
