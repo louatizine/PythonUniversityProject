@@ -81,7 +81,7 @@ const CarList = () => {
           {/* Icons */}
           <div className="flex items-center space-x-4">
             <a
-              href="/profile"
+              href="/userprofile"
               className="text-gray-700 hover:text-blue-600 font-medium"
             >
               Profile
