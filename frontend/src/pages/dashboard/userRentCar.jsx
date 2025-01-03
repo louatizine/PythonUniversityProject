@@ -70,14 +70,12 @@ const CarList = () => {
             >
               HOME
             </a>
-          
             <a
               href="/userRentlist"
               className="text-gray-700 hover:text-blue-600 font-medium"
             >
               My RENTALS
             </a>
-          
           </div>
 
           {/* Icons */}
@@ -137,6 +135,14 @@ const CarList = () => {
               <h2 className="text-2xl font-bold mb-6 text-center text-blue-600">
                 Rent {selectedCar.marke} {selectedCar.model}
               </h2>
+              {/* Displaying car picture in the rental form */}
+              <div className="mb-4">
+                <img
+                  src={selectedCar.picture}
+                  alt={`${selectedCar.marke} ${selectedCar.model}`}
+                  className="w-full object-cover rounded-md h-48"
+                />
+              </div>
               <form className="space-y-4">
                 <div>
                   <label className="block text-gray-700 font-medium mb-1">

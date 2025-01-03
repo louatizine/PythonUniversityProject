@@ -41,7 +41,8 @@ class Rental(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     rental_date = db.Column(db.DateTime, default=datetime.utcnow)
     return_date = db.Column(db.DateTime, nullable=True)
-    status = db.Column(db.String(20), nullable=False, default="pending")  # New field: pending, approved, rejected
+    status = db.Column(db.String(20), nullable=False, default="pending")
+    car_picture = db.Column(db.String(255), nullable=False)  # Store car picture URL# New field: pending, approved, rejected
     car = db.relationship('Car', backref=db.backref('rentals', cascade='all, delete-orphan'))
     user = db.relationship('User', backref=db.backref('rentals', cascade='all, delete-orphan'))
 
@@ -291,12 +292,16 @@ def rent_car():
         user_id=user_id,
         rental_date=rental_date,
         return_date=return_date,
-        status="pending"
+        status="pending",
+        car_picture=car.picture  # Store car's picture in the rental record
+
     )
     db.session.add(rental)
     db.session.commit()
 
     return jsonify({"message": "Car rented successfully", "car_id": car.id, "user_id": user_id}), 201
+
+
 
 @app.route('/returns', methods=['POST'])
 def return_car():
@@ -323,7 +328,8 @@ def list_rentals():
             "car_id": rental.car_id,
             "rental_date": rental.rental_date,
             "return_date": rental.return_date,
-            "status": rental.status
+            "status": rental.status,
+            "car_picture": rental.car_picture  # Ensure car_picture is included
         } for rental in rentals]
 
         return jsonify(rentals_data), 200
@@ -331,6 +337,55 @@ def list_rentals():
     except Exception as e:
         print(f"Error: {e}")
         return jsonify({"message": "An error occurred"}), 422
+
+
+
+
+@app.route('/delete_rental/<int:rental_id>', methods=['DELETE'])
+@jwt_required()
+def delete_rental(rental_id):
+    try:
+        user_id = int(get_jwt_identity())  # Get the logged-in user
+        rental = Rental.query.filter_by(id=rental_id, user_id=user_id).first()
+
+        if not rental:
+            return jsonify({"message": "Rental not found or access denied."}), 404
+
+        db.session.delete(rental)
+        db.session.commit()
+
+        return jsonify({"message": "Rental deleted successfully."}), 200
+
+    except Exception as e:
+        print(f"Error: {e}")
+        return jsonify({"message": "An error occurred while deleting the rental."}), 422
+
+
+@app.route('/update_rental/<int:rental_id>', methods=['PUT'])
+@jwt_required()
+def update_rental(rental_id):
+    try:
+        user_id = int(get_jwt_identity())  # Get the logged-in user
+        rental = Rental.query.filter_by(id=rental_id, user_id=user_id).first()
+
+        if not rental:
+            return jsonify({"message": "Rental not found or access denied."}), 404
+
+        data = request.get_json()
+        
+        # Update rental fields (e.g., rental date, return date, etc.)
+        rental.rental_date = data.get('rental_date', rental.rental_date)
+        rental.return_date = data.get('return_date', rental.return_date)
+        rental.car_id = data.get('car_id', rental.car_id)
+
+        db.session.commit()
+
+        return jsonify({"message": "Rental updated successfully."}), 200
+
+    except Exception as e:
+        print(f"Error: {e}")
+        return jsonify({"message": "An error occurred while updating the rental."}), 422
+
 
 
 

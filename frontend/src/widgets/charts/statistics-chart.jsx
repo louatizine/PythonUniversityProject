@@ -9,7 +9,7 @@ import PropTypes from "prop-types";
 import Chart from "react-apexcharts";
 
 export function StatisticsChart({ color, chart, title, description, footer }) {
-  return (
+/*   return (
     <Card className="border border-blue-gray-100 shadow-sm">
       <CardHeader variant="gradient" color={color} floated={false} shadow={false}>
         <Chart {...chart} />
@@ -65,6 +65,6 @@ StatisticsChart.propTypes = {
   footer: PropTypes.node,
 };
 
-StatisticsChart.displayName = "/src/widgets/charts/statistics-chart.jsx";
-
+StatisticsChart.displayName = "/src/widgets/charts/statistics-chart.jsx"; */
+}
 export default StatisticsChart;

@@ -1,50 +1,7 @@
-// src/components/StatisticsDashboard.jsx
-import React, { useEffect, useState } from "react";
-import {
-  Card,
-  CardHeader,
-  CardBody,
-  CardFooter,
-  Typography,
-  Button,
-} from "@material-tailwind/react";
-import {
-  BanknotesIcon,
-  UsersIcon,
-  UserPlusIcon,
-  ChartBarIcon,
-} from "@heroicons/react/24/solid";
+import React, { useState, useEffect } from "react";
 
-const StatisticsCard = ({ color, icon, title, value, description }) => {
-  return (
-    <Card className="mt-6 mx-auto w-11/12">
-      <CardHeader className={`relative h-20 flex items-center justify-center ${color}`}>
-        <div className="flex items-center gap-4">
-          <div>{icon}</div>
-          <Typography variant="h5" color="white">
-            {title}
-          </Typography>
-        </div>
-      </CardHeader>
-      <CardBody className="text-center">
-        <Typography variant="h4" color="blue-gray" className="mb-2">
-          {value}
-        </Typography>
-        <Typography className="text-sm text-gray-600">
-          {description}
-        </Typography>
-      </CardBody>
-      <CardFooter className="pt-0 flex justify-center">
-        <Button size="sm" color="blue">
-          View Details
-        </Button>
-      </CardFooter>
-    </Card>
-  );
-};
-
-export default function StatisticsDashboard() {
-  const [statistics, setStatistics] = useState(null);
+const StatisticsCard = () => {
+/*   const [statistics, setStatistics] = useState(null);
 
   useEffect(() => {
     const fetchStatistics = async () => {
@@ -71,49 +28,30 @@ export default function StatisticsDashboard() {
     );
   }
 
-  const statisticsCardsData = [
-    {
-      color: "bg-blue-500",
-      icon: <BanknotesIcon className="w-8 h-8 text-white" />,
-      title: "Total Users",
-      value: statistics.total_users,
-      description: "The total number of registered users.",
-    },
-    {
-      color: "bg-teal-400",
-      icon: <UsersIcon className="w-8 h-8 text-white" />,
-      title: "Total Cars",
-      value: statistics.total_cars,
-      description: "The total number of cars available in the system.",
-    },
-    {
-      color: "bg-yellow-400",
-      icon: <UserPlusIcon className="w-8 h-8 text-white" />,
-      title: "Rented Cars",
-      value: statistics.rented_cars,
-      description: "The total number of cars currently rented.",
-    },
-    {
-      color: "bg-purple-500",
-      icon: <ChartBarIcon className="w-8 h-8 text-white" />,
-      title: "Available Cars",
-      value: statistics.unrented_cars,
-      description: "The total number of cars available for rent.",
-    },
-  ];
-
   return (
-    <div className="p-4 space-y-4">
-      {statisticsCardsData.map((stat, index) => (
-        <StatisticsCard
-          key={index}
-          color={stat.color}
-          icon={stat.icon}
-          title={stat.title}
-          value={stat.value}
-          description={stat.description}
-        />
-      ))}
+    <div className="flex justify-center items-center h-screen gap-1000">
+      <div className="bg-white shadow-md rounded-lg p-6 max-w-xs w-full text-center">
+        <h2 className="text-xl font-semibold text-gray-800 mb-4">Rented Cars</h2>
+        <p className="text-gray-600 text-lg">{statistics.rented_cars}</p>
+      </div>
+
+      <div className="bg-white shadow-md rounded-lg p-6 max-w-xs w-full text-center">
+        <h2 className="text-xl font-semibold text-gray-800 mb-4">Total Cars</h2>
+        <p className="text-gray-600 text-lg">{statistics.total_cars}</p>
+      </div>
+
+      <div className="bg-white shadow-md rounded-lg p-6 max-w-xs w-full text-center">
+        <h2 className="text-xl font-semibold text-gray-800 mb-4">Total Users</h2>
+        <p className="text-gray-600 text-lg">{statistics.total_users}</p>
+      </div>
+
+      <div className="bg-white shadow-md rounded-lg p-6 max-w-xs w-full text-center">
+        <h2 className="text-xl font-semibold text-gray-800 mb-4">Unrented Cars</h2>
+        <p className="text-gray-600 text-lg">{statistics.unrented_cars}</p>
+      </div>
     </div>
   );
+}; 
+*/
 }
+export default StatisticsCard;

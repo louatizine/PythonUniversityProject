@@ -4,6 +4,9 @@ import axios from "axios";
 const UserRentalList = () => {
   const [rentals, setRentals] = useState([]);
   const [error, setError] = useState("");
+  const [selectedRental, setSelectedRental] = useState(null);
+  const [rentalDate, setRentalDate] = useState("");
+  const [returnDate, setReturnDate] = useState("");
 
   // Fetch user rentals on component load
   useEffect(() => {
@@ -21,77 +24,87 @@ const UserRentalList = () => {
         });
         setRentals(response.data);
       } catch (err) {
-        console.error(err.response?.data || "Error fetching rentals");
-        setError(err.response?.data?.message || "Failed to fetch rentals");
+        setError("Failed to fetch rentals");
       }
     };
 
     fetchRentals();
   }, []);
 
+  // Handle rental update
+  const handleUpdateRental = (rentalId) => {
+    const token = localStorage.getItem("token");
+    axios
+      .put(
+        `http://127.0.0.1:5000/update_rental/${rentalId}`,
+        { rental_date: rentalDate, return_date: returnDate },
+        { headers: { Authorization: `Bearer ${token}` } }
+      )
+      .then(() => {
+        alert("Rental updated successfully!");
+        setSelectedRental(null);
+
+        // Refresh the rental list
+        axios
+          .get("http://127.0.0.1:5000/list_rentals", {
+            headers: { Authorization: `Bearer ${token}` },
+          })
+          .then((response) => {
+            setRentals(response.data);
+          })
+          .catch((err) => {
+            console.error("Error refreshing rental list:", err);
+            alert("Error refreshing rental list.");
+          });
+      })
+      .catch((error) => {
+        alert(error.response?.data?.error || "Failed to update rental.");
+      });
+  };
+
+  // Handle rental deletion
+  const handleDeleteRental = (rentalId) => {
+    const token = localStorage.getItem("token");
+    axios
+      .delete(`http://127.0.0.1:5000/delete_rental/${rentalId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      .then(() => {
+        alert("Rental deleted successfully!");
+
+        // Refresh the rental list after deletion
+        axios
+          .get("http://127.0.0.1:5000/list_rentals", {
+            headers: { Authorization: `Bearer ${token}` },
+          })
+          .then((response) => {
+            setRentals(response.data);
+          })
+          .catch((err) => {
+            alert("Error refreshing rental list.");
+          });
+      })
+      .catch((error) => {
+        alert("Failed to delete rental.");
+      });
+  };
+
   return (
     <div>
-      {/* Updated Navigation Bar */}
-      <nav className="bg-blue-100 shadow-md p-4">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          {/* Logo */}
-          <div className="flex items-center">
-            <a href="/" className="text-xl font-bold text-blue-600">
-              Logo
-            </a>
-          </div>
-
-          {/* Navigation Links */}
-          <div className="flex space-x-8">
-
-            <a
-              href="/userRent"
-              className="text-gray-700 hover:text-blue-600 font-medium"
-            >
-              Available Cars
-            </a>
-          </div>
-
-          {/* Profile/Logout Links */}
-          <div className="flex items-center space-x-4">
-            <a
-              href="/profile"
-              className="text-gray-700 hover:text-blue-600 font-medium"
-            >
-              Profile
-            </a>
-            <a
-              href="/logout"
-              className="text-gray-700 hover:text-blue-600 font-medium"
-            >
-              Logout
-            </a>
-          </div>
-        </div>
-      </nav>
-
       {/* Rentals Section */}
       <div className="max-w-6xl mx-auto p-6">
         <h1 className="text-4xl font-bold text-center mb-6 text-blue-600">
           My Rentals
         </h1>
 
-        {/* Error Message */}
         {error && <p className="text-red-500 text-center">{error}</p>}
 
-        {/* Empty Rentals List */}
-        {!error && rentals.length === 0 && (
-          <p className="text-gray-500 text-center">No rentals found.</p>
-        )}
-
-        {/* Rentals Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {rentals.map((rental) => (
             <div
               key={rental.id}
               className="bg-white rounded-lg shadow-lg p-4 hover:shadow-2xl transition-transform transform hover:scale-105"
             >
-              {/* Car Image */}
               {rental.car_picture ? (
                 <img
                   src={rental.car_picture}
@@ -104,7 +117,6 @@ const UserRentalList = () => {
                 </div>
               )}
 
-              {/* Car Details */}
               <h2 className="text-xl font-semibold mb-2 text-gray-800">
                 {rental.car_make} {rental.car_model}
               </h2>
@@ -118,24 +130,78 @@ const UserRentalList = () => {
                   ? new Date(rental.return_date).toLocaleDateString()
                   : "Not returned"}
               </p>
-              <p>
-                <span className="font-bold">Status:</span>{" "}
-                <span
-                  className={`font-semibold ${
-                    rental.status === "pending"
-                      ? "text-yellow-500"
-                      : rental.status === "approved"
-                      ? "text-green-500"
-                      : "text-red-500"
-                  }`}
+
+              <div className="mt-4 flex space-x-4">
+                <button
+                  onClick={() => {
+                    setSelectedRental(rental);
+                    setRentalDate(new Date(rental.rental_date).toISOString().slice(0, 10));
+                    setReturnDate(rental.return_date ? new Date(rental.return_date).toISOString().slice(0, 10) : "");
+                  }}
+                  className="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600"
                 >
-                  {rental.status}
-                </span>
-              </p>
+                  Edit
+                </button>
+                <button
+                  onClick={() => handleDeleteRental(rental.id)}
+                  className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
+                >
+                  Delete
+                </button>
+              </div>
             </div>
           ))}
         </div>
       </div>
+
+      {/* Edit Rental Modal */}
+      {selectedRental && (
+        <div className="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center">
+          <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
+            <h2 className="text-2xl font-bold text-center text-blue-600 mb-6">
+              Edit Rental for {selectedRental.car_make} {selectedRental.car_model}
+            </h2>
+            <form className="space-y-4">
+              <div>
+                <label className="block text-gray-700 font-medium mb-1">Rental Date</label>
+                <input
+                  type="date"
+                  value={rentalDate}
+                  onChange={(e) => setRentalDate(e.target.value)}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-gray-700 font-medium mb-1">Return Date</label>
+                <input
+                  type="date"
+                  value={returnDate}
+                  onChange={(e) => setReturnDate(e.target.value)}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  required
+                />
+              </div>
+              <div className="flex justify-end gap-4 mt-4">
+                <button
+                  type="button"
+                  onClick={() => handleUpdateRental(selectedRental.id)}
+                  className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+                >
+                  Confirm Update
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedRental(null)}
+                  className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
