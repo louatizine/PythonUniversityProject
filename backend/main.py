@@ -23,6 +23,7 @@ ma = Marshmallow(app)
 class User(db.Model):
     __tablename__ = "user"
     id = db.Column(db.Integer, primary_key=True)
+    phone = db.Column(db.String(255), nullable=True)
     username = db.Column(db.String(100), unique=True, nullable=False)
     password = db.Column(db.String(100), nullable=False)
     email = db.Column(db.String(100), unique=True, nullable=False)
@@ -30,9 +31,6 @@ class User(db.Model):
     last_name = db.Column(db.String(100), nullable=False)
     role = db.Column(db.String(50), nullable=False, default="user")
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
-    
-    
     
 class Rental(db.Model):
     __tablename__ = "rental"
@@ -43,6 +41,7 @@ class Rental(db.Model):
     return_date = db.Column(db.DateTime, nullable=True)
     status = db.Column(db.String(20), nullable=False, default="pending")
     car_picture = db.Column(db.String(255), nullable=False)  # Store car picture URL# New field: pending, approved, rejected
+    rental_price = db.Column(db.Float, nullable=False)  # Store rental price
     car = db.relationship('Car', backref=db.backref('rentals', cascade='all, delete-orphan'))
     user = db.relationship('User', backref=db.backref('rentals', cascade='all, delete-orphan'))
 
@@ -83,7 +82,6 @@ cars_schema = CarSchema(many=True)
 def home():
     return jsonify({"message": "Welcome to the Car Rental API!"})
 
-
 @app.route('/api/register', methods=['POST'])
 def register():
     data = request.json
@@ -92,21 +90,26 @@ def register():
     email = data.get('email')
     first_name = data.get('first_name')
     last_name = data.get('last_name')
+    phone = data.get('phone')  # Get phone from the request
 
-    if not username or not password or not email or not first_name or not last_name:
+    # Validate required fields
+    if not username or not password or not email or not first_name or not last_name or not phone:
         return jsonify({'message': 'All fields are required'}), 400
 
+    # Check if username or email already exists
     if User.query.filter_by(username=username).first() or User.query.filter_by(email=email).first():
         return jsonify({'message': 'Username or email already exists'}), 409
 
+    # Hash the password
     hashed_password = bcrypt.generate_password_hash(password).decode('utf-8')
-    new_user = User(username=username, password=hashed_password, email=email, first_name=first_name, last_name=last_name)
+
+    # Create a new user with the phone number
+    new_user = User(username=username, password=hashed_password, email=email, 
+                    first_name=first_name, last_name=last_name, phone=phone)
     db.session.add(new_user)
     db.session.commit()
 
     return jsonify({'message': 'User registered successfully'}), 201
-
-
 
 
 
@@ -160,8 +163,7 @@ def userdetails(id):
     user = User.query.get(id)
     return user_schema.jsonify(user)
 
-@app.route('/userupdate/<id>', methods=['PUT'])
-def userupdate(id):
+
     user = User.query.get(id)
     username = request.json.get('username')
     email = request.json.get('email')
@@ -184,16 +186,13 @@ def userupdate(id):
 
     return user_schema.jsonify(user)
 
-@app.route('/userdelete/<id>', methods=['DELETE'])
-def userdelete(id):
     user = User.query.get(id)
     db.session.delete(user)
     db.session.commit()
 
     return user_schema.jsonify(user)
 
-@app.route('/useradd', methods=['POST'])
-def useradd():
+
     username = request.json.get('username')
     email = request.json.get('email')
     first_name = request.json.get('first_name')
@@ -208,16 +207,24 @@ def useradd():
 
     return user_schema.jsonify(new_user)
 
-@app.route('/api/user', methods=['GET'])
+@app.route('/api/user', methods=['GET','PUT'])
 @jwt_required()
 def get_current_user():
     user_identity = get_jwt_identity()
-    user = User.query.filter_by(id=user_identity['id']).first()
+    user = User.query.filter_by(id=int(user_identity)).first()
+    
     if user:
-        return user_schema.jsonify(user)
+        # Make sure phone is included in the response
+        return jsonify({
+            "id": user.id,
+            "phone": user.phone,
+            "email": user.email,
+            "first_name": user.first_name,
+            "last_name": user.last_name,
+            "role": user.role,
+            "created_at": user.created_at
+        })
     return jsonify({"message": "User not found"}), 404
-
-
 
 
 
@@ -233,7 +240,6 @@ def create_car():
     db.session.add(new_car)
     db.session.commit()
     return jsonify({"message": "Car added", "car_id": new_car.id}), 201
-
 
 @app.route('/cars/<int:id>', methods=['GET'])
 def get_car(id):
@@ -286,20 +292,47 @@ def rent_car():
     if return_date <= rental_date:
         return jsonify({"error": "Return date must be after the rental date"}), 400
 
-    user_id = int(get_jwt_identity())  
+    # Calculate the rental days
+    rental_days = (return_date - rental_date).days
+
+    if rental_days <= 0:
+        return jsonify({"error": "Rental duration must be greater than 0 days"}), 400
+
+    # Check if the car is already rented during the requested dates
+    existing_rental = Rental.query.filter(
+        Rental.car_id == car.id,
+        Rental.status == 'approved',
+        db.or_(
+            db.and_(Rental.rental_date <= return_date, Rental.return_date >= rental_date)
+        )
+    ).first()
+
+    if existing_rental:
+        return jsonify({"message": "Sorry, the car is already rented during this period."}), 400
+
+    # Calculate the rental price
+    rental_price = rental_days * car.price_per_day
+
+    user_id = int(get_jwt_identity())  # Get the current user's ID
     rental = Rental(
         car_id=car.id,
         user_id=user_id,
         rental_date=rental_date,
         return_date=return_date,
         status="pending",
-        car_picture=car.picture  # Store car's picture in the rental record
-
+        car_picture=car.picture,  # Store car's picture in the rental record
+        rental_price=rental_price  # Store the calculated rental price
     )
     db.session.add(rental)
     db.session.commit()
 
-    return jsonify({"message": "Car rented successfully", "car_id": car.id, "user_id": user_id}), 201
+    return jsonify({
+        "message": "Car rented successfully",
+        "car_id": car.id,
+        "user_id": user_id,
+        "rental_price": rental_price  # Include the rental price in the response
+    }), 201
+
 
 
 
@@ -315,7 +348,6 @@ def return_car():
 
 
 
-
 @app.route('/list_rentals', methods=['GET'])
 @jwt_required()
 def list_rentals():
@@ -323,14 +355,39 @@ def list_rentals():
         user_id = int(get_jwt_identity())  # Convert the identity back to an integer
         rentals = Rental.query.filter_by(user_id=user_id).all()
 
-        rentals_data = [{
-            "id": rental.id,
-            "car_id": rental.car_id,
-            "rental_date": rental.rental_date,
-            "return_date": rental.return_date,
-            "status": rental.status,
-            "car_picture": rental.car_picture  # Ensure car_picture is included
-        } for rental in rentals]
+        rentals_data = []
+        for rental in rentals:
+            rental_date = rental.rental_date
+            return_date = rental.return_date
+
+            # Calculate the number of days the car was rented
+            if return_date:  # If return date exists, calculate the days
+                rental_days = (return_date - rental_date).days
+            else:
+                rental_days = (datetime.now() - rental_date).days  # If no return date, use today's date
+
+            # Assuming 'Car' model has 'price_per_day'
+            car = Car.query.get(rental.car_id)
+            if car:
+                price_per_day = car.price_per_day
+            else:
+                price_per_day = 0  # If no car found, set price to 0
+
+            # Check if the price is valid and rental days are valid
+            if rental_days < 0 or price_per_day <= 0:
+                total_price = 0  # If invalid, set total price to 0
+            else:
+                total_price = rental_days * price_per_day  # Calculate the total price
+
+            rentals_data.append({
+                "id": rental.id,
+                "car_id": rental.car_id,
+                "rental_date": rental.rental_date,
+                "return_date": rental.return_date,
+                "status": rental.status,
+                "car_picture": rental.car_picture,  # Ensure car_picture is included
+                "total_price": total_price  # Include the calculated total price
+            })
 
         return jsonify(rentals_data), 200
 
@@ -361,22 +418,49 @@ def delete_rental(rental_id):
         return jsonify({"message": "An error occurred while deleting the rental."}), 422
 
 
+######
 @app.route('/update_rental/<int:rental_id>', methods=['PUT'])
 @jwt_required()
 def update_rental(rental_id):
     try:
+        # Get the logged-in user ID
         user_id = int(get_jwt_identity())  # Get the logged-in user
+
         rental = Rental.query.filter_by(id=rental_id, user_id=user_id).first()
 
         if not rental:
             return jsonify({"message": "Rental not found or access denied."}), 404
 
         data = request.get_json()
-        
-        # Update rental fields (e.g., rental date, return date, etc.)
-        rental.rental_date = data.get('rental_date', rental.rental_date)
-        rental.return_date = data.get('return_date', rental.return_date)
-        rental.car_id = data.get('car_id', rental.car_id)
+
+        # Log the received request data for debugging
+        print(f"Received data: {data}")
+
+        # Validate the presence of rental_date and return_date
+        if not data.get('rental_date') or not data.get('return_date'):
+            return jsonify({"message": "Missing rental_date or return_date"}), 400
+
+        # Extract new rental dates from the request body or use current values
+        new_rental_date = data.get('rental_date', rental.rental_date)
+        new_return_date = data.get('return_date', rental.return_date)
+
+        # Check if new rental dates are provided and if there's a conflict
+        if new_rental_date and new_return_date:
+            # Check if the new rental dates conflict with any existing rentals
+            conflicting_rental = Rental.query.filter(
+                Rental.car_id == rental.car_id,
+                Rental.status == 'approved',
+                db.or_(
+                    db.and_(Rental.rental_date <= new_return_date, Rental.return_date >= new_rental_date)
+                )
+            ).first()
+
+            if conflicting_rental:
+                return jsonify({"message": "Sorry, the car is already rented during this period."}), 400
+
+        # Proceed with the update if no conflict
+        rental.rental_date = new_rental_date
+        rental.return_date = new_return_date
 
         db.session.commit()
 
@@ -386,6 +470,7 @@ def update_rental(rental_id):
         print(f"Error: {e}")
         return jsonify({"message": "An error occurred while updating the rental."}), 422
 
+###
 
 
 

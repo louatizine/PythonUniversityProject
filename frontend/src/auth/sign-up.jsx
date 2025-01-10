@@ -13,6 +13,7 @@ export function SignUp() {
   const [password, setPassword] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
+  const [phone, setPhone] = useState(""); // New state for phone number
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
@@ -21,7 +22,7 @@ export function SignUp() {
     setError(""); // Clear error
 
     // Validate inputs
-    if (!email || !password || !firstName || !lastName) {
+    if (!email || !password || !firstName || !lastName || !phone) {
       setError("All fields are required.");
       return;
     }
@@ -38,6 +39,7 @@ export function SignUp() {
           first_name: firstName,
           last_name: lastName,
           password,
+          phone, // Adding phone to the request
         }),
       });
 
@@ -56,9 +58,17 @@ export function SignUp() {
 
   return (
     <section className="m-8 flex gap-4">
+      <div className="w-2/5 h-full hidden lg:block">
+        <img
+          src="/img/pattern.png"
+          className="h-full w-full object-cover rounded-3xl"
+        />
+      </div>
       <div className="w-full lg:w-3/5 mt-24">
         <div className="text-center">
-          <Typography variant="h2" className="font-bold mb-4">Sign Up</Typography>
+          <Typography variant="h2" className="font-bold mb-4">
+            Sign Up
+          </Typography>
           <Typography
             variant="paragraph"
             color="blue-gray"
@@ -115,6 +125,20 @@ export function SignUp() {
             />
 
             <Typography variant="small" color="blue-gray" className="-mb-3 font-medium">
+              Phone
+            </Typography>
+            <Input
+              size="lg"
+              placeholder="123-456-7890"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              className="!border-t-blue-gray-200 focus:!border-t-gray-900"
+              labelProps={{
+                className: "before:content-none after:content-none",
+              }}
+            />
+
+            <Typography variant="small" color="blue-gray" className="-mb-3 font-medium">
               Password
             </Typography>
             <Input
@@ -135,8 +159,6 @@ export function SignUp() {
               {error}
             </Typography>
           )}
-
-   
 
           <Button
             type="submit"

@@ -7,6 +7,10 @@ const UserRentalList = () => {
   const [selectedRental, setSelectedRental] = useState(null);
   const [rentalDate, setRentalDate] = useState("");
   const [returnDate, setReturnDate] = useState("");
+  const [user, setUser] = useState(null);
+
+
+
 
   // Fetch user rentals on component load
   useEffect(() => {
@@ -22,11 +26,13 @@ const UserRentalList = () => {
         const response = await axios.get("http://127.0.0.1:5000/list_rentals", {
           headers: { Authorization: `Bearer ${token}` },
         });
+        console.log(response.data);  // Log the API response
         setRentals(response.data);
       } catch (err) {
         setError("Failed to fetch rentals");
       }
     };
+
 
     fetchRentals();
   }, []);
@@ -89,46 +95,26 @@ const UserRentalList = () => {
       });
   };
 
+
+
   return (
     <div>
-        <nav className="bg-blue-100 shadow-md p-4">
+      <nav className="bg-blue-600 shadow-lg p-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          {/* Logo */}
-          <div className="flex items-center">
-            <a href="/" className="text-xl font-bold text-blue-600">
-              Logo
+          <div className="text-white text-xl font-bold">CarRental</div>
+          <div className="flex space-x-6">
+            <a href="/userRent" className="text-white hover:text-gray-200">
+              Home
             </a>
-          </div>
-
-          {/* Navigation Links */}
-          <div className="flex space-x-8">
-            <a
-              href="/userRent"
-              className="text-gray-700 hover:text-blue-600 font-medium"
-            >
-              HOME
-            </a>
-         
-          </div>
-
-          {/* Icons */}
-          <div className="flex items-center space-x-4">
-            <a
-              href="/userprofile"
-              className="text-gray-700 hover:text-blue-600 font-medium"
-            >
+            <a href="/userprofile" className="text-white hover:text-gray-200">
               Profile
             </a>
-            <a
-              href="/logout"
-              className="text-gray-700 hover:text-blue-600 font-medium"
-            >
+            <a href="/logout" className="text-white hover:text-gray-200">
               Logout
             </a>
           </div>
         </div>
       </nav>
-      {/* Rentals Section */}
       <div className="max-w-6xl mx-auto p-6">
         <h1 className="text-4xl font-bold text-center mb-6 text-blue-600">
           My Rentals
@@ -140,51 +126,96 @@ const UserRentalList = () => {
           {rentals.map((rental) => (
             <div
               key={rental.id}
-              className="bg-white rounded-lg shadow-lg p-4 hover:shadow-2xl transition-transform transform hover:scale-105"
+              className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow relative"
             >
+              {/* Car Image */}
               {rental.car_picture ? (
                 <img
                   src={rental.car_picture}
                   alt={`${rental.car_make} ${rental.car_model}`}
-                  className="w-full h-40 object-cover rounded-md mb-4"
+                  className="w-full h-48 object-cover"
                 />
               ) : (
-                <div className="w-full h-40 bg-gray-200 flex items-center justify-center rounded-md mb-4">
+                <div className="w-full h-48 bg-gray-200 flex items-center justify-center">
                   <span className="text-gray-500">No Image Available</span>
                 </div>
               )}
 
-              <h2 className="text-xl font-semibold mb-2 text-gray-800">
-                {rental.car_make} {rental.car_model}
-              </h2>
-              <p>
-                <span className="font-bold">Rental Date:</span>{" "}
-                {new Date(rental.rental_date).toLocaleDateString()}
-              </p>
-              <p>
-                <span className="font-bold">Return Date:</span>{" "}
-                {rental.return_date
-                  ? new Date(rental.return_date).toLocaleDateString()
-                  : "Not returned"}
-              </p>
+              <div className="p-4">
+                {/* Title */}
+                <h2 className="text-xl font-bold text-gray-800">
+                  {rental.car_make} {rental.car_model}
+                </h2>
 
-              <div className="mt-4 flex space-x-4">
-                <button
-                  onClick={() => {
-                    setSelectedRental(rental);
-                    setRentalDate(new Date(rental.rental_date).toISOString().slice(0, 10));
-                    setReturnDate(rental.return_date ? new Date(rental.return_date).toISOString().slice(0, 10) : "");
-                  }}
-                  className="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600"
-                >
-                  Edit
-                </button>
-                <button
-                  onClick={() => handleDeleteRental(rental.id)}
-                  className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
-                >
-                  Delete
-                </button>
+                {/* Rental Details */}
+                <p className="text-gray-600 text-sm mt-2">
+                  <span className="font-semibold">Rental Date:</span>{" "}
+                  {new Date(rental.rental_date).toLocaleDateString()}
+                </p>
+                <p className="text-gray-600 text-sm">
+                  <span className="font-semibold">Return Date:</span>{" "}
+                  {rental.return_date
+                    ? new Date(rental.return_date).toLocaleDateString()
+                    : "Not returned"}
+                </p>
+
+                {/* Price */}
+                <p className="text-gray-600 text-sm mt-2">
+                  <span className="font-semibold">Price:</span> {rental.total_price && !isNaN(rental.total_price)
+                    ? `${rental.total_price.toFixed(2)} Dt`
+                    : "Price not available"}
+                </p>
+
+                {/* Status Badge */}
+                <p className="mt-3">
+                  <span
+                    className={`px-2 py-1 text-sm font-bold rounded ${
+                      rental.status === "active"
+                        ? "bg-green-100 text-green-700"
+                        : rental.status === "completed"
+                        ? "bg-gray-100 text-gray-700"
+                        : rental.status === "rejected"
+                        ? "bg-red-100 text-red-700"
+                        : "bg-yellow-100 text-yellow-700"
+                    }`}
+                  >
+                    {rental.status.toUpperCase()}
+                  </span>
+                </p>
+
+                {/* Buttons - Vertical Layout */}
+                <div className="mt-4 space-y-2">
+                  {rental.status === "pending" && (
+                    <>
+                      <button
+                        onClick={() => {
+                          setSelectedRental(rental);
+                          setRentalDate(
+                            new Date(rental.rental_date)
+                              .toISOString()
+                              .slice(0, 10)
+                          );
+                          setReturnDate(
+                            rental.return_date
+                              ? new Date(rental.return_date)
+                                  .toISOString()
+                                  .slice(0, 10)
+                              : ""
+                          );
+                        }}
+                        className="w-full bg-blue-500 text-white px-4 py-2 rounded-md shadow hover:bg-blue-800"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleDeleteRental(rental.id)}
+                        className="w-full bg-red-500 text-white px-4 py-2 rounded-md shadow hover:bg-red-800"
+                      >
+                        Delete
+                      </button>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
           ))}
@@ -200,7 +231,9 @@ const UserRentalList = () => {
             </h2>
             <form className="space-y-4">
               <div>
-                <label className="block text-gray-700 font-medium mb-1">Rental Date</label>
+                <label className="block text-gray-700 font-medium mb-1">
+                  Rental Date
+                </label>
                 <input
                   type="date"
                   value={rentalDate}
@@ -210,7 +243,9 @@ const UserRentalList = () => {
                 />
               </div>
               <div>
-                <label className="block text-gray-700 font-medium mb-1">Return Date</label>
+                <label className="block text-gray-700 font-medium mb-1">
+                  Return Date
+                </label>
                 <input
                   type="date"
                   value={returnDate}
@@ -223,14 +258,14 @@ const UserRentalList = () => {
                 <button
                   type="button"
                   onClick={() => handleUpdateRental(selectedRental.id)}
-                  className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+                  className="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600 transition"
                 >
                   Confirm Update
                 </button>
                 <button
                   type="button"
                   onClick={() => setSelectedRental(null)}
-                  className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
+                  className="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 transition"
                 >
                   Cancel
                 </button>
