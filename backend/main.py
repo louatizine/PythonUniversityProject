@@ -5,6 +5,8 @@ from flask_jwt_extended import JWTManager, create_access_token, jwt_required, ge
 from flask_marshmallow import Marshmallow
 from flask_cors import CORS
 from datetime import datetime
+from sqlalchemy import extract
+from collections import defaultdict
 
 app = Flask(__name__)
 CORS(app, origins="http://localhost:5173")  # Allow your frontend's origin
@@ -535,19 +537,32 @@ def get_statistics():
     try:
         total_users = User.query.count()
         total_cars = Car.query.count()
-        rented_cars = Rental.query.filter(Rental.return_date.is_(None)).count()
+        rented_cars = Rental.query.filter(Rental.status == 'approved').count()
         unrented_cars = total_cars - rented_cars
 
+        # Get rentals per month (based on rental_date)
+        monthly_rentals = Rental.query.with_entities(
+            extract('month', Rental.rental_date).label('month'), 
+            db.func.count().label('count')
+        ).filter(Rental.status == 'approved')\
+         .group_by(extract('month', Rental.rental_date))\
+         .all()
+
+        # Create a dict for the months and their rental counts
+        rentals_per_month = defaultdict(int)
+        for month, count in monthly_rentals:
+            rentals_per_month[month] = count
+
+        # Return the statistics and rentals per month
         return jsonify({
             "total_users": total_users,
             "total_cars": total_cars,
             "rented_cars": rented_cars,
-            "unrented_cars": unrented_cars
+            "unrented_cars": unrented_cars,
+            "monthly_rentals": rentals_per_month
         }), 200
     except Exception as e:
         return jsonify({"message": f"Error: {str(e)}"}), 500
-
-
 
 # Initialize the database
 with app.app_context():
