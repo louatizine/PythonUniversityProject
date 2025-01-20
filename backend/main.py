@@ -530,8 +530,6 @@ def update_rental_status(rental_id):
 
 
 # Statistique 
-
-
 @app.route('/api/statistics', methods=['GET'])
 def get_statistics():
     try:
@@ -539,30 +537,52 @@ def get_statistics():
         total_cars = Car.query.count()
         rented_cars = Rental.query.filter(Rental.status == 'approved').count()
         unrented_cars = total_cars - rented_cars
+        total_revenue = db.session.query(db.func.sum(Rental.rental_price)).filter(Rental.status == 'approved').scalar() or 0
 
-        # Get rentals per month (based on rental_date)
+        # Monthly rentals
         monthly_rentals = Rental.query.with_entities(
-            extract('month', Rental.rental_date).label('month'), 
+            extract('month', Rental.rental_date).label('month'),
             db.func.count().label('count')
-        ).filter(Rental.status == 'approved')\
-         .group_by(extract('month', Rental.rental_date))\
-         .all()
+        ).filter(Rental.status == 'approved').group_by(extract('month', Rental.rental_date)).all()
 
-        # Create a dict for the months and their rental counts
-        rentals_per_month = defaultdict(int)
-        for month, count in monthly_rentals:
-            rentals_per_month[month] = count
+        rentals_per_month = defaultdict(int, {month: count for month, count in monthly_rentals})
 
-        # Return the statistics and rentals per month
+        # Monthly revenue
+        monthly_revenue = Rental.query.with_entities(
+            extract('month', Rental.rental_date).label('month'),
+            db.func.sum(Rental.rental_price).label('revenue')
+        ).filter(Rental.status == 'approved').group_by(extract('month', Rental.rental_date)).all()
+
+        revenue_per_month = defaultdict(float, {month: revenue for month, revenue in monthly_revenue})
+
+        # Most rented car
+        most_rented_car = Rental.query.with_entities(
+            Car.marke, Car.model, db.func.count(Rental.car_id).label('count')
+        ).join(Car, Rental.car_id == Car.id)\
+         .filter(Rental.status == 'approved')\
+         .group_by(Car.marke, Car.model)\
+         .order_by(db.desc('count'))\
+         .first()
+
+
+
         return jsonify({
             "total_users": total_users,
             "total_cars": total_cars,
             "rented_cars": rented_cars,
             "unrented_cars": unrented_cars,
-            "monthly_rentals": rentals_per_month
+            "total_revenue": total_revenue,
+            "monthly_rentals": rentals_per_month,
+            "monthly_revenue": revenue_per_month,
+            "most_rented_car": {
+                "marke": most_rented_car[0],
+                "model": most_rented_car[1]
+            } if most_rented_car else None
         }), 200
     except Exception as e:
         return jsonify({"message": f"Error: {str(e)}"}), 500
+
+
 
 # Initialize the database
 with app.app_context():

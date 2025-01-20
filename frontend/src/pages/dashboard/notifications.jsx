@@ -82,7 +82,7 @@ export function Notifications() {
               </h2>
               <p className="text-gray-600 mb-2">Fuel: {car.fuel_type}</p>
               <p className="text-gray-800 font-bold mb-4">
-                ${car.price_per_day} / day
+                {car.price_per_day} DT/ day
               </p>
               <div className="flex gap-4">
                 <button
